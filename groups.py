@@ -1,0 +1,47 @@
+from settings import *
+
+class AllSprites(pygame.sprite.Group):
+    def __init__(self):
+        super().__init__()
+        self.offset = pygame.Vector2()
+
+    def draw(self, target_position, display_surface):
+        self.offset.x = -(target_position[0] - WINDOW_WIDTH / 2)
+        self.offset.y = -(target_position[1] - WINDOW_HEIGHT / 2)
+
+        ground_sprites = [sprite for sprite in self if hasattr(sprite, 'ground')]
+        object_sprites = [sprite for sprite in self if not hasattr(sprite, 'ground')]
+
+        for layer in [ground_sprites, object_sprites]:
+            for sprite in sorted(layer, key = lambda sprite: sprite.rect.bottom):
+                display_surface.blit(sprite.image, sprite.rect.topleft + self.offset)
+        
+class LightingSprites(pygame.sprite.Group):
+    def __init__(self):
+        super().__init__()
+        self.display_surface = pygame.display.get_surface()
+        self.offset = pygame.Vector2()
+        
+    def draw(self, target_position):
+        self.offset.x = -(target_position[0] - WINDOW_WIDTH / 2)
+        self.offset.y = -(target_position[1] - WINDOW_HEIGHT / 2)
+
+        light_sprites = [sprite for sprite in self]
+
+        i = 0
+        for light in lights_engine.lights:
+            lights_engine.lights[i] = PointLight(
+                position = light_sprites[i].rect.center + self.offset,
+                power = light.power,
+                radius = light.radius
+            )
+            i += 1
+
+        tex = lights_engine.surface_to_texture(pygame.display.get_surface())
+        lights_engine.render_texture(
+            tex, pl2d.BACKGROUND,
+            pygame.Rect(0, 0, tex.width, tex.height),
+            pygame.Rect(0, 0, tex.width, tex.height))
+        tex.release()
+
+        lights_engine.render()
